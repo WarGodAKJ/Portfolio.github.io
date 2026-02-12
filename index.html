@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Atharva Joshi | Intelligent Engineering Portfolio</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <canvas id="robotic-arm-bg"></canvas>
+
+  <div class="hud-layer">
+    <div class="hud-corner top-left">
+      <div class="hud-item"><span class="hud-label">SYSTEM:</span> <span class="hud-value success">ONLINE</span></div>
+      <div class="hud-item"><span class="hud-label">USER:</span> <span class="hud-value">GUEST_01</span></div>
+    </div>
+    <div class="hud-corner top-right">
+       <div class="hud-item"><span class="hud-label">LOC:</span> <span class="hud-value">PENN_STATE</span></div>
+      <div class="hud-item"><span class="hud-label">T-MINUS:</span> <span class="hud-value" id="hud-time">00:00:00</span></div>
+    </div>
+    <div class="hud-corner bottom-left">
+       <div class="hud-item"><span class="hud-label">X:</span> <span class="hud-value" id="cursor-x">000</span></div>
+      <div class="hud-item"><span class="hud-label">Y:</span> <span class="hud-value" id="cursor-y">000</span></div>
+    </div>
+    <div class="hud-corner bottom-right">
+      <div class="hud-item"><span class="hud-label">MODE:</span> <span class="hud-value">INTERACTIVE</span></div>
+    </div>
+    <div class="hud-line line-top"></div>
+    <div class="hud-line line-bottom"></div>
+    <div class="hud-line line-left"></div>
+    <div class="hud-line line-right"></div>
+  </div>
+
+  <header class="navbar" id="main-navbar">
+    <div class="nav-flex">
+      <div class="logo">
+        <span class="bracket">[</span> ATHARVA_JOSHI <span class="bracket">]</span>
+      </div>
+
+      <nav class="ribbon-nav" aria-label="Primary navigation" id="ribbon-nav">
+        <a href="#home" class="nav-link" data-hover="HOME">Home</a>
+        <a href="#about" class="nav-link" data-hover="ABOUT">About</a>
+        <a href="#skills" class="nav-link" data-hover="STACK">Tech Stack</a>
+        <a href="#projects" class="nav-link" data-hover="PROJECTS">Projects</a>
+        <a href="#experience" class="nav-link" data-hover="EXP">Experience</a>
+      </nav>
+
+      <div class="nav-controls">
+        <a href="assets/Atharva_Joshi_Resume.pdf" target="_blank" class="resume-btn">
+          <i class="fa-solid fa-file-arrow-down"></i> RESUME.PDF
+        </a>
+
+        <div class="hamburger-wrap">
+          <button class="menu-icon" id="hamburger" aria-label="Toggle navigation" aria-expanded="false">
+            <span class="hamburger-bars" aria-hidden="true"><i class="fa-solid fa-bars"></i></span>
+            <span class="hamburger-close" aria-hidden="true"><i class="fa-solid fa-xmark"></i></span>
+          </button>
+
+          <div class="mobile-nav" id="mobile-nav" aria-hidden="true">
+            <a href="#home" class="mobile-link">Home</a>
+            <a href="#about" class="mobile-link">About Me</a>
+            <a href="#skills" class="mobile-link">Tech Stack</a>
+            <a href="#projects" class="mobile-link">Projects</a>
+            <a href="#experience" class="mobile-link">Experience</a>
+            <a href="assets/Atharva_Joshi_Resume.pdf" target="_blank" class="mobile-link highlight-link">Download Resume</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="home" class="split-hero">
+      <div class="split-left">
+        <div class="img-frame">
+            <span class="corner c-tl"></span><span class="corner c-tr"></span>
+            <span class="corner c-bl"></span><span class="corner c-br"></span>
+            <img src="assets/bklreturns.jpg" alt="Atharva Joshi Profile" class="hero-img" loading="eager">
+        </div>
+      </div>
+      <div class="split-right">
+        <h1 class="fade-in-element static-name">ATHARVA JOSHI</h1>
+        <div class="typewriter-container fade-in-element">
+            <span class="prefix">> </span><span id="typewriter"></span><span class="cursor">_</span>
+        </div>
+        
+        <div class="about-header-lines fade-in-element">
+          <div class="about-header-main">B.S. Mechanical Engineering | Minor: Mechatronics</div>
+          <div class="about-header-tagline">BRIDGING THE GAP BETWEEN DIGITAL & PHYSICAL</div>
+        </div>
+        
+        <div class="hero-actions fade-in-element">
+            <a href="#projects" class="action-btn primary">INITIALIZE_PROJECTS</a>
+            <button id="gyro-button" class="action-btn secondary">ENABLE_GYRO</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="about" class="section">
+      <div class="section-header fade-in-element">
+          <span class="section-num">01.</span>
+          <h2 class="section-title">SYSTEM_PROFILE</h2>
+          <div class="section-line"></div>
+      </div>
+      
+      <div class="about-wrap">
+        <div class="about-card fade-in-element">
+          <div class="card-header-bar">
+              <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+              <span class="card-title">bio.txt</span>
+          </div>
+          <div class="card-content">
+            <p>
+              I am a <span class="highlight">Mechanical Engineering</span> student obsessed with the intersection of hardware and intelligence. 
+              While others see static machines, I see opportunities for automation, feedback loops, and Industry 4.0 integration.
+            </p>
+            <br>
+            <p>
+              My expertise lies in <span class="highlight">mechatronics, rapid prototyping, and DFAM</span> (Design for Additive Manufacturing). 
+              From designing custom vibration fixtures to building assistive robotics, I engineer systems that interact with the real world.
+            </p>
+          </div>
+        </div>
+        
+        <div class="skills-centered fade-in-element">
+          <img src="assets/bkl.jpg" alt="Secondary Profile" class="contact-img" loading="lazy">
+        </div>
+      </div>
+    </section>
+
+    <section id="skills" class="section">
+      <div class="section-header fade-in-element">
+          <span class="section-num">02.</span>
+          <h2 class="section-title">TECH_STACK</h2>
+          <div class="section-line"></div>
+      </div>
+
+      <div class="tech-grid fade-in-element">
+        <div class="tech-category">
+            <h3><i class="fa-solid fa-cube"></i> CAD & SIMULATION</h3>
+            <div class="tech-icons">
+                <div class="tech-item" title="SolidWorks"><i class="fa-solid fa-cube"></i> <span>SolidWorks</span></div>
+                <div class="tech-item" title="AutoCAD"><i class="fa-solid fa-pen-ruler"></i> <span>AutoCAD</span></div>
+                <div class="tech-item" title="Fusion 360"><i class="fa-solid fa-circle-nodes"></i> <span>Fusion 360</span></div>
+                <div class="tech-item" title="Ansys"><i class="fa-solid fa-wind"></i> <span>Ansys</span></div>
+                <div class="tech-item" title="Abaqus"><i class="fa-solid fa-microchip"></i> <span>Abaqus</span></div>
+            </div>
+        </div>
+
+        <div class="tech-category">
+            <h3><i class="fa-solid fa-code"></i> COMPUTATION</h3>
+            <div class="tech-icons">
+                <div class="tech-item" title="MATLAB"><i class="fa-solid fa-calculator"></i> <span>MATLAB</span></div>
+                <div class="tech-item" title="C++"><i class="fa-brands fa-cuttlefish"></i> <span>C++</span></div>
+                <div class="tech-item" title="Python"><i class="fa-brands fa-python"></i> <span>Python</span></div>
+                <div class="tech-item" title="Arduino"><i class="fa-solid fa-microchip"></i> <span>Arduino</span></div>
+            </div>
+        </div>
+
+        <div class="tech-category">
+            <h3><i class="fa-solid fa-gears"></i> MANUFACTURING</h3>
+            <div class="tech-icons">
+                <div class="tech-item"><i class="fa-solid fa-print"></i> <span>3D Printing (FDM/SLA)</span></div>
+                <div class="tech-item"><i class="fa-solid fa-wrench"></i> <span>DFM / DFA</span></div>
+                <div class="tech-item"><i class="fa-solid fa-ruler-combined"></i> <span>GD&T</span></div>
+                <div class="tech-item"><i class="fa-solid fa-vial"></i> <span>Root Cause Analysis</span></div>
+            </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="projects" class="section">
+      <div class="section-header fade-in-element">
+          <span class="section-num">03.</span>
+          <h2 class="section-title">PROJECT_LOGS</h2>
+          <div class="section-line"></div>
+      </div>
+
+      <div class="project-subsection">
+        <h3 class="project-subheading accent fade-in-element">// PERSONAL_PROJECTS</h3>
+        <div class="project-grid">
+          <div class="project-card fade-in-element" data-project="proj1">
+            <div class="card-corner top-right"></div>
+            <div class="card-corner bottom-left"></div>
+            <img src="assets/project1-img.jpg" alt="Tone Control Circuit" class="project-img" loading="lazy">
+            <div class="card-body">
+                <h3 class="accent">Tone Control Mixer</h3>
+                <p class="project-summary">Five-stage analog audio processing system.</p>
+                <div class="tech-tags">
+                    <span>Multisim</span><span>MATLAB</span><span>Analog Circuits</span>
+                </div>
+            </div>
+          </div>
+
+          <div class="project-card fade-in-element" data-project="proj2">
+            <div class="card-corner top-right"></div>
+            <div class="card-corner bottom-left"></div>
+            <img src="assets/project2-img.jpg" alt="Assistive Tech" class="project-img" loading="lazy">
+            <div class="card-body">
+                <h3 class="accent">Haptic Nav Headset</h3>
+                <p class="project-summary">Ultrasonic feedback device for visually impaired users.</p>
+                <div class="tech-tags">
+                    <span>Arduino</span><span>C++</span><span>Sensors</span>
+                </div>
+            </div>
+          </div>
+
+          <div class="project-card fade-in-element" data-project="proj3">
+            <div class="card-corner top-right"></div>
+            <div class="card-corner bottom-left"></div>
+            <img src="assets/project3-img.jpg" alt="Kibble Dispenser" class="project-img" loading="lazy">
+            <div class="card-body">
+                <h3 class="accent">Kibble Dispenser</h3>
+                <p class="project-summary">Wheelchair-mounted mechanical feeder for service dogs.</p>
+                <div class="tech-tags">
+                    <span>Fusion 360</span><span>Prototyping</span><span>Mechanism Design</span>
+                </div>
+            </div>
+          </div>
+
+          <div class="project-card fade-in-element" data-project="proj4">
+             <div class="card-corner top-right"></div>
+             <div class="card-corner bottom-left"></div>
+             <img src="assets/research_img_1.jpeg" alt="AM Research" class="project-img" loading="lazy">
+             <div class="card-body">
+                 <h3 class="accent">AM FEA Research</h3>
+                 <p class="project-summary">Mesh convergence studies for additive manufacturing.</p>
+                 <div class="tech-tags">
+                     <span>Ansys</span><span>Abaqus</span><span>FEA</span>
+                 </div>
+             </div>
+          </div>
+          
+           <div class="project-card fade-in-element" data-project="proj5">
+            <div class="card-corner top-right"></div>
+            <div class="card-corner bottom-left"></div>
+            <img src="assets/project5-img.jpg" alt="Spot Micro" class="project-img" loading="lazy">
+            <div class="card-body">
+                <h3 class="accent">SpotMicro Robot</h3>
+                <p class="project-summary">Quadruped robot dynamics and control.</p>
+                <div class="tech-tags">
+                    <span>Robotics</span><span>Python</span><span>Control Systems</span>
+                </div>
+            </div>
+         </div>
+        </div>
+      </div>
+
+      <div class="project-subsection">
+        <h3 class="project-subheading accent fade-in-element">// INDUSTRY_EXPERIENCE</h3>
+        <div class="project-grid">
+          <div class="project-card fade-in-element" data-project="intern1">
+            <img src="assets/Screw PIC 1.png" alt="Torque Testing" class="project-img" loading="lazy">
+            <div class="card-body">
+                <h3 class="accent">Torque Failure Analysis</h3>
+                <div class="tech-tags"><span>Testing</span><span>Data Analysis</span></div>
+            </div>
+          </div>
+          <div class="project-card fade-in-element" data-project="intern4">
+            <img src="assets/Fixture PIC 2.png" alt="Fixture Design" class="project-img" loading="lazy">
+            <div class="card-body">
+                <h3 class="accent">Vibration Fixture Design</h3>
+                <div class="tech-tags"><span>SolidWorks</span><span>Vibration Testing</span></div>
+            </div>
+          </div>
+          <div class="project-card fade-in-element" data-project="intern2">
+            <img src="assets/Power PIC 1.png" alt="PowerApp" class="project-img" loading="lazy">
+            <div class="card-body">
+                <h3 class="accent">Failure Tracking App</h3>
+                <div class="tech-tags"><span>PowerApps</span><span>SharePoint</span></div>
+            </div>
+          </div>
+           <div class="project-card fade-in-element" data-project="intern3">
+            <img src="assets/Qualification PIC 1.png" alt="Qual Reports" class="project-img" loading="lazy">
+            <div class="card-body">
+                <h3 class="accent">Qualification Reports</h3>
+                <div class="tech-tags"><span>Minitab</span><span>LaTeX</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="modal-bg" class="modal-bg"></div>
+    </section>
+
+    <section id="experience" class="section">
+      <div class="section-header fade-in-element">
+          <span class="section-num">04.</span>
+          <h2 class="section-title">CAREER_TIMELINE</h2>
+          <div class="section-line"></div>
+      </div>
+
+      <div class="timeline-container">
+          <div class="timeline-line"></div>
+          
+          <div class="timeline-item fade-in-element">
+            <div class="timeline-dot"></div>
+            <div class="exp-card">
+              <div class="exp-header" data-exp="amphenol">
+                <div class="exp-header-left">
+                    <span class="exp-title accent"><b>Mechanical Integrity Intern</b></span>
+                    <span class="exp-subtitle">Amphenol Communication Solutions</span>
+                </div>
+                <span class="exp-dates">May 2025 – Aug 2025</span>
+              </div>
+              <div class="exp-body" id="amphenol-body">
+                <ul>
+                  <li>Increased reporting efficiency for 15+ projects by automating LLCR data analysis using Minitab.</li>
+                  <li>Co-developed a PowerApp for structured customer failure submissions, reducing turnaround by 30%.</li>
+                  <li>Designed custom vibration fixtures in SolidWorks for complex PCB layouts.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="timeline-item fade-in-element">
+            <div class="timeline-dot"></div>
+            <div class="exp-card">
+              <div class="exp-header" data-exp="shape">
+                <div class="exp-header-left">
+                    <span class="exp-title accent"><b>Research Assistant</b></span>
+                    <span class="exp-subtitle">S.H.A.P.E. Lab (Penn State)</span>
+                </div>
+                <span class="exp-dates">Oct 2024 – Present</span>
+              </div>
+              <div class="exp-body" id="shape-body">
+                <ul>
+                  <li>Optimized mesh refinement in Ansys/Abaqus, achieving < 2% error in FEA deformation analysis.</li>
+                  <li>Improved simulation speed by 40% via mesh convergence studies.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="timeline-item fade-in-element">
+            <div class="timeline-dot"></div>
+            <div class="exp-card">
+              <div class="exp-header" data-exp="origin">
+                <div class="exp-header-left">
+                    <span class="exp-title accent"><b>Lab Technician</b></span>
+                    <span class="exp-subtitle">OriginLabs Penn State</span>
+                </div>
+                <span class="exp-dates">Oct 2024 – Present</span>
+              </div>
+              <div class="exp-body" id="origin-body">
+                <ul>
+                  <li>Redesigned "PALMS" medical tablet holder with 180° rotary detent mechanism.</li>
+                  <li>Maintained and calibrated 30+ Industry 4.0 prototyping machines.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <div class="timeline-item fade-in-element">
+            <div class="timeline-dot"></div>
+            <div class="exp-card">
+              <div class="exp-header" data-exp="asme">
+                 <div class="exp-header-left">
+                    <span class="exp-title accent"><b>Design Team Lead</b></span>
+                    <span class="exp-subtitle">ASME Penn State</span>
+                 </div>
+                <span class="exp-dates">Jan 2024 – Present</span>
+              </div>
+              <div class="exp-body" id="asme-body">
+                <ul>
+                  <li>Directed a 15-member team to develop a wearable haptic device for visually impaired users.</li>
+                  <li>Programmed C++ control logic for sub-200ms object detection.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+      </div>
+    </section>
+
+    <section id="contact" class="section">
+      <div class="section-header fade-in-element">
+          <span class="section-num">05.</span>
+          <h2 class="section-title">TRANSMISSION_END</h2>
+          <div class="section-line"></div>
+      </div>
+      
+      <div class="about-wrap centered-contact">
+        <div class="about-card fade-in-element">
+            <div class="card-header-bar">
+                <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+                <span class="card-title">contact_info.json</span>
+            </div>
+          <p>
+            Currently open for Full-Time Roles and Internships in <b>Mechanical Design</b> and <b>Mechatronics</b>.
+          </p>
+          <div class="contact-links">
+              <a href="mailto:atharvajosh@gmail.com" class="contact-btn"><i class="fa-solid fa-envelope"></i> Email</a>
+              <a href="https://www.linkedin.com/in/atharvajoshi2027" target="_blank" class="contact-btn"><i class="fa-brands fa-linkedin"></i> LinkedIn</a>
+              <a href="https://github.com/WarGodAKJ" target="_blank" class="contact-btn"><i class="fa-brands fa-github"></i> GitHub</a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-content">
+        <span>© 2026 ATHARVA JOSHI</span>
+        <span class="separator">|</span>
+        <span>SYSTEM_STATUS: NOMINAL</span>
+    </div>
+  </footer>
+
+  <script src="portfolio.js"></script>
+</body>
+</html>
