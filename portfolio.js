@@ -60,40 +60,31 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(updateClock, 1000);
     updateClock();
 
-    // Mouse Tracking & Idle Detection
+    // Mouse Tracking & Interaction State
     const mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
     let lastMouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
     let idleTimer = Date.now();
     let isIdle = false;
+    let isMouseDown = false;
     
     // Industrial Idle State Machine Variables
     let idleState = 'MOVING';
     let idleTarget = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
     let idleWaitTimer = 0;
 
-    // --- NEW: Natural Pose Generator (Prevents Straight Arms) ---
+    // --- Natural Pose Generator ---
     function pickNewIdleTarget() {
-        // Calculate total length of arm
         const totalLength = segmentLengths.reduce((a, b) => a + b, 0);
-        
-        // Define the "Sweet Spot" Radius
-        // Min: 30% of length (don't scrunch up too close)
-        // Max: 85% of length (NEVER reach 100%, forcing a bent elbow)
         const minReach = totalLength * 0.3;
         const maxReach = totalLength * 0.85; 
-        
-        // Random reach within the bent zone
         const reach = minReach + Math.random() * (maxReach - minReach);
-        
-        // Random Angle (Arc covering the top half of screen)
-        // 0 is right, -PI/2 is up, -PI is left. We use a safe arc.
         const angle = -0.2 - Math.random() * (Math.PI - 0.4);
         
-        // Convert Polar to Cartesian
         idleTarget.x = armBase.x + Math.cos(angle) * reach;
         idleTarget.y = armBase.y + Math.sin(angle) * reach;
     }
     
+    // Reset idle timer on movement
     window.addEventListener('mousemove', (e) => {
         const dist = Math.hypot(e.clientX - lastMouse.x, e.clientY - lastMouse.y);
         
@@ -117,6 +108,21 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Handle Manual Welding (Click to Spark)
+    window.addEventListener('mousedown', () => {
+        isMouseDown = true;
+        isIdle = false; // Instantly wake up
+        idleTimer = Date.now(); 
+        if (idleState === 'WELDING') {
+            idleState = 'MOVING';
+            pickNewIdleTarget();
+        }
+    });
+
+    window.addEventListener('mouseup', () => {
+        isMouseDown = false;
+    });
+
     /* =========================================
        3. SLEEK INVERSE KINEMATICS ARM & IDLE TASK
        ========================================= */
@@ -127,7 +133,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let armBase = { x: 0, y: 0 };
     
     const numSegments = 4;
-    // Updated lengths for a more balanced "Cobot" look
     const segmentLengths = window.innerWidth > 768 ? [130, 110, 90, 70] : [70, 60, 50, 40];
     let segments = [];
     let sparks = [];
@@ -168,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function animateArm() {
         ctx.clearRect(0, 0, width, height);
 
-        // --- IK SOLVER ---
+        // --- IK SOLVER FIRST ---
         reach(segments[numSegments - 1], target.x, target.y);
         for(let i = numSegments - 2; i >= 0; i--) {
             reach(segments[i], segments[i+1].x, segments[i+1].y);
@@ -179,20 +184,20 @@ document.addEventListener('DOMContentLoaded', () => {
             position(segments[i], segments[i+1]);
         }
 
-        // Calculate Tip Position
+        // Calculate EXACT Tip Position
         const lastSeg = segments[numSegments - 1];
         const actualTipX = lastSeg.x + Math.cos(lastSeg.angle) * lastSeg.length;
         const actualTipY = lastSeg.y + Math.sin(lastSeg.angle) * lastSeg.length;
         
-        // --- INDUSTRIAL IDLE LOGIC ---
-        if (window.innerWidth > 768 && Date.now() - idleTimer > 2500) {
+        // --- STATE LOGIC ---
+        // Enter idle if no movement for 2.5s AND mouse is not held down
+        if (window.innerWidth > 768 && !isMouseDown && Date.now() - idleTimer > 2500) {
             isIdle = true;
         }
 
+        // 1. IDLE MODE
         if (isIdle) {
             if (idleState === 'MOVING') {
-                // --- SLOWER MOVEMENT UPDATE ---
-                // Easing factor reduced from 0.03 to 0.012 for heavy, industrial feel
                 target.x += (idleTarget.x - target.x) * 0.012;
                 target.y += (idleTarget.y - target.y) * 0.012;
 
@@ -204,27 +209,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 target.x += (idleTarget.x - target.x) * 0.1;
                 target.y += (idleTarget.y - target.y) * 0.1;
 
-                if (Math.random() > 0.4) { 
-                    for (let i = 0; i < 2; i++) {
-                        const angle = Math.PI/2 + (Math.random() - 0.5) * 2.0; 
-                        const speed = 2 + Math.random() * 6;
-                        sparks.push({
-                            x: actualTipX, 
-                            y: actualTipY,
-                            vx: Math.cos(angle) * speed,
-                            vy: Math.sin(angle) * speed,
-                            life: 1.0,
-                            maxLife: 0.5 + Math.random() * 0.8
-                        });
-                    }
-                }
-
                 if (Date.now() - idleWaitTimer > 1200 + Math.random() * 1500) {
                     idleState = 'MOVING';
                     pickNewIdleTarget();
                 }
             }
-        } else {
+        } 
+        // 2. ACTIVE MOUSE CONTROL
+        else {
             target.x += (mouse.x - target.x) * 0.08;
             target.y += (mouse.y - target.y) * 0.08;
         }
@@ -288,16 +280,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 ctx.fill();
                 ctx.restore();
 
-                if (isIdle && idleState === 'WELDING') {
+                // Determine if we should spark/glow
+                const isWorking = (isIdle && idleState === 'WELDING') || isMouseDown;
+
+                if (isWorking) {
+                    // Arc Glow
                     ctx.beginPath();
                     ctx.arc(nextX, nextY, 6 + Math.random()*6, 0, Math.PI * 2);
                     ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
                     ctx.shadowBlur = 20;
                     ctx.shadowColor = '#00f3ff';
                     ctx.fill();
-                    ctx.shadowBlur = 0; 
+                    ctx.shadowBlur = 0;
+
+                    // Emit Sparks
+                    if (Math.random() > 0.4) { 
+                        for (let i = 0; i < 2; i++) {
+                            const angle = Math.PI/2 + (Math.random() - 0.5) * 2.0; 
+                            const speed = 2 + Math.random() * 6;
+                            sparks.push({
+                                x: actualTipX, 
+                                y: actualTipY,
+                                vx: Math.cos(angle) * speed,
+                                vy: Math.sin(angle) * speed,
+                                life: 1.0,
+                                maxLife: 0.5 + Math.random() * 0.8
+                            });
+                        }
+                    }
                 }
                 
+                // Crosshairs (only show when dragging mouse, hide during idle)
                 if (!isIdle) {
                     ctx.beginPath();
                     ctx.moveTo(target.x - 10, target.y);
