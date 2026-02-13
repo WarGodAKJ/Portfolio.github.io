@@ -674,9 +674,11 @@ main { max-width: 1200px; margin: 0 auto; padding: 0 2rem; }
 
 .modal-right img {
   width: 100%;
-  max-height: 300px;
-  object-fit: cover;
+  height: auto;          /* Let the height adjust naturally */
+  max-height: 60vh;      /* Cap height at 60% of viewport so it fits on screen */
+  object-fit: contain;   /* KEY FIX: Ensures the WHOLE image is visible, never cropped */
   border: 1px solid var(--border-tech);
+  background: rgba(0,0,0,0.3); /* Adds a dark backing for the image */
 }
 
 /* =========================================
