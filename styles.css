@@ -105,7 +105,7 @@ a:hover {
 .hud-label { color: var(--text-muted); margin-right: 8px; }
 .hud-value.success { color: var(--accent-green); text-shadow: 0 0 8px var(--accent-green); animation: pulse 2s infinite; }
 
-/* HUD Boundary Lines (FIXED to not cut through the navbar) */
+/* HUD Boundary Lines (Fixed to not cut through navbar) */
 .hud-line {
   position: absolute;
   background: var(--border-tech);
@@ -181,7 +181,7 @@ a:hover {
   gap: 1.5rem;
 }
 
-/* Maximize Button Style */
+/* Fullscreen Toggle Button */
 .icon-btn {
     background: transparent;
     border: 1px solid var(--border-tech);
@@ -802,8 +802,8 @@ main { max-width: 1200px; margin: 0 auto; padding: 0 2rem; }
 
 .separator { color: var(--accent-cyan); }
 
-/* Hide Gyro Button on Desktop */
-@media (min-width: 1367px) {
+/* Hide Gyro Button on Desktop (Only shows on mobile, but JS hides it anyway on tablet/mobile if needed) */
+@media (min-width: 1401px) {
   #gyro-button {
     display: none;
   }
@@ -823,62 +823,47 @@ main { max-width: 1200px; margin: 0 auto; padding: 0 2rem; }
 .fade-in-element.visible { opacity: 1; transform: translateY(0); }
 
 /* =========================================
-   RESPONSIVE DESIGN (TABLET & MOBILE)
+   RESPONSIVE DESIGN: THE TRIPLE LOCK
+   Targets: Landscape Tablets, Portrait Tablets, Phones
+   Locks: Max Width 1400px OR Coarse Pointer OR No Hover
    ========================================= */
-/* We now use (pointer: coarse) to detect touch devices 
-   OR screen width up to 1366px to catch Tablet Landscape 
-*/
-@media (max-width: 1366px), (pointer: coarse) {
-  .hud-layer { display: none; } 
+@media (max-width: 1400px), (pointer: coarse), (hover: none) {
+  /* 1. HIDE ROBOTIC ARM COMPLETELY */
+  #robotic-arm-bg { display: none !important; }
   
+  /* 2. HIDE GYRO BUTTON */
+  #gyro-button { display: none !important; }
+  
+  /* 3. HIDE HUD */
+  .hud-layer { display: none; }
+  
+  /* 4. LAYOUT ADJUSTMENTS */
   .split-hero { flex-direction: column; text-align: center; gap: 2rem; padding-top: 2rem; }
   .split-left { flex: auto; max-width: 350px; margin: 0 auto; }
-  .about-header-lines { border-left: none; padding-left: 0; border-top: 2px solid var(--border-tech); padding-top: 1rem; margin: 0 auto 2rem; }
+  .static-name { font-size: 3.5rem; }
   .hero-actions { justify-content: center; }
   .about-wrap { flex-direction: column; }
+  .about-header-lines { border-left: none; border-top: 2px solid var(--border-tech); padding: 1rem 0 0 0; }
 
-  /* Navigation: Switch to Hamburger */
-  .ribbon-nav { display: none; }
-  .resume-btn { display: none; }
-  
+  /* 5. FORCE HAMBURGER NAV (Fixes the cluttered Nav bar) */
+  .ribbon-nav { display: none !important; }
+  .resume-btn { display: none !important; }
   .hamburger-wrap { display: block; position: relative; }
-  .menu-icon { display: flex; align-items: center; justify-content: center; }
-  
-  /* HIDE ROBOTIC ARM AND GYRO BUTTON ON TABLET/MOBILE */
-  #robotic-arm-bg, #gyro-button {
-    display: none !important;
-  }
   
   .mobile-nav {
-    position: absolute;
-    top: 100%; right: 0;
-    background: var(--bg-panel);
-    border: 1px solid var(--border-tech);
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-    min-width: 200px;
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(-10px);
-    transition: all 0.3s ease;
+    position: absolute; top: 100%; right: 0; background: var(--bg-panel); border: 1px solid var(--border-tech);
+    padding: 1rem; display: flex; flex-direction: column; gap: 1rem; min-width: 220px;
+    opacity: 0; visibility: hidden; transform: translateY(-10px); transition: all 0.3s ease;
   }
   .mobile-nav.open { opacity: 1; visibility: visible; transform: translateY(0); }
-  
   .mobile-link { color: var(--text-main); font-family: var(--font-header); font-size: 1.2rem; text-transform: uppercase; }
-  .mobile-link:hover { color: var(--accent-cyan); }
   .highlight-link { color: var(--accent-cyan); border-top: 1px solid var(--border-tech); padding-top: 1rem; }
 
-  .static-name { font-size: 3.5rem; }
-  .section-title { font-size: 2rem; }
   .exp-header { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
-  .timeline-line { left: 10px; }
-  .timeline-dot { left: 3px; width: 14px; height: 14px; }
-  .timeline-item { padding-left: 40px; }
-  
-  .project-modal {
-    grid-template-columns: 1fr;
-    padding: 1.5rem;
-  }
+  .project-modal { grid-template-columns: 1fr; padding: 1.5rem; }
+}
+
+@media (max-width: 480px) {
+  .static-name { font-size: 2.5rem; }
+  .action-btn { padding: 0.6rem 1rem; font-size: 0.9rem; }
 }
