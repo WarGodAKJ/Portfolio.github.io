@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(updateClock, 1000);
     updateClock();
 
-    // Mouse Tracking & Interaction State
+    // Mouse Tracking & Idle Detection
     const mouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
     let lastMouse = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
     let idleTimer = Date.now();
@@ -72,349 +72,317 @@ document.addEventListener('DOMContentLoaded', () => {
     let idleTarget = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
     let idleWaitTimer = 0;
 
-    // --- Natural Pose Generator ---
-    function pickNewIdleTarget() {
-        const totalLength = segmentLengths.reduce((a, b) => a + b, 0);
-        const minReach = totalLength * 0.3;
-        const maxReach = totalLength * 0.85; 
-        const reach = minReach + Math.random() * (maxReach - minReach);
-        const angle = -0.2 - Math.random() * (Math.PI - 0.4);
-        
-        idleTarget.x = armBase.x + Math.cos(angle) * reach;
-        idleTarget.y = armBase.y + Math.sin(angle) * reach;
-    }
-    
-    // Reset idle timer on movement
-    window.addEventListener('mousemove', (e) => {
-        const dist = Math.hypot(e.clientX - lastMouse.x, e.clientY - lastMouse.y);
-        
-        if (dist > 5) { 
-            idleTimer = Date.now();
-            isIdle = false;
-            if (idleState === 'WELDING') {
-                idleState = 'MOVING';
-                pickNewIdleTarget();
+    // --- FULLSCREEN TOGGLE ---
+    const fullscreenBtn = document.getElementById('fullscreen-btn');
+    if (fullscreenBtn) {
+        fullscreenBtn.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                }
             }
-        }
-        
-        mouse.x = e.clientX;
-        mouse.y = e.clientY;
-        lastMouse.x = e.clientX;
-        lastMouse.y = e.clientY;
-        
-        if(cursorXEl && cursorYEl) {
-            cursorXEl.textContent = String(e.clientX).padStart(4, '0');
-            cursorYEl.textContent = String(e.clientY).padStart(4, '0');
-        }
-    });
+        });
+    }
 
-    // Handle Manual Welding (Click to Spark)
-    window.addEventListener('mousedown', () => {
-        isMouseDown = true;
-        isIdle = false; // Instantly wake up
-        idleTimer = Date.now(); 
-        if (idleState === 'WELDING') {
-            idleState = 'MOVING';
+    // Only run Arm logic on PC (width > 1024px)
+    if (window.innerWidth > 1024) {
+        
+        const canvas = document.getElementById('robotic-arm-bg');
+        const ctx = canvas.getContext('2d');
+        
+        let width, height;
+        let armBase = { x: 0, y: 0 };
+        
+        const numSegments = 4;
+        const segmentLengths = [130, 110, 90, 70];
+        let segments = [];
+        let sparks = [];
+        
+        const target = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+
+        function initCanvas() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            armBase.x = width / 2;
+            armBase.y = height; 
+            
+            segments = [];
+            for(let i = 0; i < numSegments; i++) {
+                segments.push({
+                    x: armBase.x,
+                    y: armBase.y - (i * 50),
+                    angle: 0,
+                    length: segmentLengths[i]
+                });
+            }
             pickNewIdleTarget();
         }
-    });
 
-    window.addEventListener('mouseup', () => {
-        isMouseDown = false;
-    });
-
-    /* =========================================
-       3. SLEEK INVERSE KINEMATICS ARM & IDLE TASK
-       ========================================= */
-    const canvas = document.getElementById('robotic-arm-bg');
-    const ctx = canvas.getContext('2d');
-    
-    let width, height;
-    let armBase = { x: 0, y: 0 };
-    
-    const numSegments = 4;
-    const segmentLengths = window.innerWidth > 768 ? [130, 110, 90, 70] : [70, 60, 50, 40];
-    let segments = [];
-    let sparks = [];
-    
-    const target = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
-    
-    function initCanvas() {
-        width = canvas.width = window.innerWidth;
-        height = canvas.height = window.innerHeight;
-        armBase.x = width / 2;
-        armBase.y = height; 
-        
-        segments = [];
-        for(let i = 0; i < numSegments; i++) {
-            segments.push({
-                x: armBase.x,
-                y: armBase.y - (i * 50),
-                angle: 0,
-                length: segmentLengths[i]
-            });
-        }
-        pickNewIdleTarget();
-    }
-
-    function reach(segment, tx, ty) {
-        const dx = tx - segment.x;
-        const dy = ty - segment.y;
-        segment.angle = Math.atan2(dy, dx);
-        segment.x = tx - Math.cos(segment.angle) * segment.length;
-        segment.y = ty - Math.sin(segment.angle) * segment.length;
-    }
-
-    function position(segmentA, segmentB) {
-        segmentB.x = segmentA.x + Math.cos(segmentA.angle) * segmentA.length;
-        segmentB.y = segmentA.y + Math.sin(segmentA.angle) * segmentA.length;
-    }
-
-    function animateArm() {
-        ctx.clearRect(0, 0, width, height);
-
-        // --- IK SOLVER FIRST ---
-        reach(segments[numSegments - 1], target.x, target.y);
-        for(let i = numSegments - 2; i >= 0; i--) {
-            reach(segments[i], segments[i+1].x, segments[i+1].y);
-        }
-        segments[0].x = armBase.x;
-        segments[0].y = armBase.y;
-        for(let i = 0; i < numSegments - 1; i++) {
-            position(segments[i], segments[i+1]);
+        // --- Natural Pose Generator ---
+        function pickNewIdleTarget() {
+            const totalLength = segmentLengths.reduce((a, b) => a + b, 0);
+            const minReach = totalLength * 0.3;
+            const maxReach = totalLength * 0.85; 
+            const reach = minReach + Math.random() * (maxReach - minReach);
+            const angle = -0.2 - Math.random() * (Math.PI - 0.4);
+            
+            idleTarget.x = armBase.x + Math.cos(angle) * reach;
+            idleTarget.y = armBase.y + Math.sin(angle) * reach;
         }
 
-        // Calculate EXACT Tip Position
-        const lastSeg = segments[numSegments - 1];
-        const actualTipX = lastSeg.x + Math.cos(lastSeg.angle) * lastSeg.length;
-        const actualTipY = lastSeg.y + Math.sin(lastSeg.angle) * lastSeg.length;
-        
-        // --- STATE LOGIC ---
-        // Enter idle if no movement for 2.5s AND mouse is not held down
-        if (window.innerWidth > 768 && !isMouseDown && Date.now() - idleTimer > 2500) {
-            isIdle = true;
+        function reach(segment, tx, ty) {
+            const dx = tx - segment.x;
+            const dy = ty - segment.y;
+            segment.angle = Math.atan2(dy, dx);
+            segment.x = tx - Math.cos(segment.angle) * segment.length;
+            segment.y = ty - Math.sin(segment.angle) * segment.length;
         }
 
-        // 1. IDLE MODE
-        if (isIdle) {
-            if (idleState === 'MOVING') {
-                target.x += (idleTarget.x - target.x) * 0.012;
-                target.y += (idleTarget.y - target.y) * 0.012;
+        function position(segmentA, segmentB) {
+            segmentB.x = segmentA.x + Math.cos(segmentA.angle) * segmentA.length;
+            segmentB.y = segmentA.y + Math.sin(segmentA.angle) * segmentA.length;
+        }
 
-                if (Math.hypot(idleTarget.x - target.x, idleTarget.y - target.y) < 5) {
-                    idleState = 'WELDING';
-                    idleWaitTimer = Date.now();
+        function animateArm() {
+            ctx.clearRect(0, 0, width, height);
+
+            // --- IK SOLVER FIRST ---
+            reach(segments[numSegments - 1], target.x, target.y);
+            for(let i = numSegments - 2; i >= 0; i--) {
+                reach(segments[i], segments[i+1].x, segments[i+1].y);
+            }
+            segments[0].x = armBase.x;
+            segments[0].y = armBase.y;
+            for(let i = 0; i < numSegments - 1; i++) {
+                position(segments[i], segments[i+1]);
+            }
+
+            // Calculate EXACT Tip Position
+            const lastSeg = segments[numSegments - 1];
+            const actualTipX = lastSeg.x + Math.cos(lastSeg.angle) * lastSeg.length;
+            const actualTipY = lastSeg.y + Math.sin(lastSeg.angle) * lastSeg.length;
+            
+            // --- STATE LOGIC ---
+            // Enter idle if no movement for 2.5s AND mouse is not held down
+            if (!isMouseDown && Date.now() - idleTimer > 2500) {
+                isIdle = true;
+            }
+
+            // 1. IDLE MODE
+            if (isIdle) {
+                if (idleState === 'MOVING') {
+                    target.x += (idleTarget.x - target.x) * 0.012;
+                    target.y += (idleTarget.y - target.y) * 0.012;
+
+                    if (Math.hypot(idleTarget.x - target.x, idleTarget.y - target.y) < 5) {
+                        idleState = 'WELDING';
+                        idleWaitTimer = Date.now();
+                    }
+                } else if (idleState === 'WELDING') {
+                    target.x += (idleTarget.x - target.x) * 0.1;
+                    target.y += (idleTarget.y - target.y) * 0.1;
+
+                    if (Date.now() - idleWaitTimer > 1200 + Math.random() * 1500) {
+                        idleState = 'MOVING';
+                        pickNewIdleTarget();
+                    }
                 }
-            } else if (idleState === 'WELDING') {
-                target.x += (idleTarget.x - target.x) * 0.1;
-                target.y += (idleTarget.y - target.y) * 0.1;
+            } 
+            // 2. ACTIVE MOUSE CONTROL
+            else {
+                target.x += (mouse.x - target.x) * 0.08;
+                target.y += (mouse.y - target.y) * 0.08;
+            }
 
-                if (Date.now() - idleWaitTimer > 1200 + Math.random() * 1500) {
+            // --- DRAW ARM ---
+            ctx.fillStyle = '#111';
+            ctx.fillRect(armBase.x - 30, armBase.y - 15, 60, 30);
+            ctx.beginPath();
+            ctx.arc(armBase.x, armBase.y - 15, 20, 0, Math.PI * 2);
+            ctx.fillStyle = '#2c3e50'; 
+            ctx.fill();
+
+            for(let i = 0; i < numSegments; i++) {
+                const seg = segments[i];
+                const nextX = seg.x + Math.cos(seg.angle) * seg.length;
+                const nextY = seg.y + Math.sin(seg.angle) * seg.length;
+
+                const baseThick = (numSegments - i) * 2 + 6;
+                const endThick = (numSegments - i - 1) * 2 + 6;
+
+                const p1x = Math.cos(seg.angle - Math.PI/2);
+                const p1y = Math.sin(seg.angle - Math.PI/2);
+                const p2x = Math.cos(seg.angle + Math.PI/2);
+                const p2y = Math.sin(seg.angle + Math.PI/2);
+
+                ctx.beginPath();
+                ctx.moveTo(seg.x + p1x * baseThick, seg.y + p1y * baseThick);
+                ctx.lineTo(nextX + p1x * endThick, nextY + p1y * endThick);
+                ctx.lineTo(nextX + p2x * endThick, nextY + p2y * endThick);
+                ctx.lineTo(seg.x + p2x * baseThick, seg.y + p2y * baseThick);
+                ctx.closePath();
+                
+                ctx.fillStyle = 'rgba(150, 160, 170, 0.9)'; 
+                ctx.fill();
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.arc(seg.x, seg.y, baseThick + 2, 0, Math.PI * 2);
+                ctx.fillStyle = '#1a1f24';
+                ctx.fill();
+                ctx.lineWidth = 2;
+                ctx.strokeStyle = '#00f3ff'; 
+                ctx.stroke();
+
+                if (i === numSegments - 1) {
+                    ctx.save();
+                    ctx.translate(nextX, nextY);
+                    ctx.rotate(seg.angle);
+                    
+                    ctx.fillStyle = '#2c3e50';
+                    ctx.fillRect(0, -8, 12, 16);
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(12, -4);
+                    ctx.lineTo(24, -1);
+                    ctx.lineTo(24, 1);
+                    ctx.lineTo(12, 4);
+                    ctx.fillStyle = '#e0e6ed';
+                    ctx.fill();
+                    ctx.restore();
+
+                    // Determine if we should spark/glow
+                    const isWorking = (isIdle && idleState === 'WELDING') || isMouseDown;
+
+                    if (isWorking) {
+                        // Arc Glow
+                        ctx.beginPath();
+                        ctx.arc(nextX, nextY, 6 + Math.random()*6, 0, Math.PI * 2);
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                        ctx.shadowBlur = 20;
+                        ctx.shadowColor = '#00f3ff';
+                        ctx.fill();
+                        ctx.shadowBlur = 0;
+
+                        // Emit Sparks
+                        if (Math.random() > 0.4) { 
+                            for (let i = 0; i < 2; i++) {
+                                const angle = Math.PI/2 + (Math.random() - 0.5) * 2.0; 
+                                const speed = 2 + Math.random() * 6;
+                                sparks.push({
+                                    x: actualTipX, 
+                                    y: actualTipY,
+                                    vx: Math.cos(angle) * speed,
+                                    vy: Math.sin(angle) * speed,
+                                    life: 1.0,
+                                    maxLife: 0.5 + Math.random() * 0.8
+                                });
+                            }
+                        }
+                    }
+                    
+                    // Crosshairs (only show when dragging mouse, hide during idle)
+                    if (!isIdle) {
+                        ctx.beginPath();
+                        ctx.moveTo(target.x - 10, target.y);
+                        ctx.lineTo(target.x + 10, target.y);
+                        ctx.moveTo(target.x, target.y - 10);
+                        ctx.lineTo(target.x, target.y + 10);
+                        ctx.strokeStyle = 'rgba(0, 243, 255, 0.4)';
+                        ctx.lineWidth = 1;
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            // --- DRAW SPARKS ---
+            for (let i = sparks.length - 1; i >= 0; i--) {
+                let s = sparks[i];
+                let px = s.x;
+                let py = s.y;
+
+                s.x += s.vx;
+                s.y += s.vy;
+                s.vy += 0.3; 
+                s.vx *= 0.94; 
+                s.vy *= 0.96; 
+                s.life -= 0.02;
+
+                let color = '';
+                let ratio = s.life / s.maxLife;
+                if (ratio > 0.7) color = `rgba(255, 255, 255, ${ratio})`;
+                else if (ratio > 0.3) color = `rgba(0, 243, 255, ${ratio})`;
+                else color = `rgba(0, 100, 255, ${ratio})`;
+
+                ctx.beginPath();
+                ctx.moveTo(px, py);
+                ctx.lineTo(s.x, s.y);
+                ctx.strokeStyle = color;
+                ctx.lineWidth = Math.max(0.5, ratio * 2.5); 
+                ctx.lineCap = 'round';
+                ctx.stroke();
+
+                if (s.y > armBase.y) {
+                    s.y = armBase.y;
+                    s.vy *= -0.3;
+                    s.vx *= 0.7;
+                }
+
+                if(s.life <= 0) sparks.splice(i, 1);
+            }
+
+            requestAnimationFrame(animateArm);
+        }
+
+        // Initialize and listen for events
+        initCanvas();
+        animateArm();
+        
+        let resizeTimer;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(initCanvas, 200);
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            const dist = Math.hypot(e.clientX - lastMouse.x, e.clientY - lastMouse.y);
+            
+            if (dist > 5) { 
+                idleTimer = Date.now();
+                isIdle = false;
+                if (idleState === 'WELDING') {
                     idleState = 'MOVING';
                     pickNewIdleTarget();
                 }
             }
-        } 
-        // 2. ACTIVE MOUSE CONTROL
-        else {
-            target.x += (mouse.x - target.x) * 0.08;
-            target.y += (mouse.y - target.y) * 0.08;
-        }
-
-        // --- DRAW ARM ---
-        ctx.fillStyle = '#111';
-        ctx.fillRect(armBase.x - 30, armBase.y - 15, 60, 30);
-        ctx.beginPath();
-        ctx.arc(armBase.x, armBase.y - 15, 20, 0, Math.PI * 2);
-        ctx.fillStyle = '#2c3e50'; 
-        ctx.fill();
-
-        for(let i = 0; i < numSegments; i++) {
-            const seg = segments[i];
-            const nextX = seg.x + Math.cos(seg.angle) * seg.length;
-            const nextY = seg.y + Math.sin(seg.angle) * seg.length;
-
-            const baseThick = (numSegments - i) * 2 + 6;
-            const endThick = (numSegments - i - 1) * 2 + 6;
-
-            const p1x = Math.cos(seg.angle - Math.PI/2);
-            const p1y = Math.sin(seg.angle - Math.PI/2);
-            const p2x = Math.cos(seg.angle + Math.PI/2);
-            const p2y = Math.sin(seg.angle + Math.PI/2);
-
-            ctx.beginPath();
-            ctx.moveTo(seg.x + p1x * baseThick, seg.y + p1y * baseThick);
-            ctx.lineTo(nextX + p1x * endThick, nextY + p1y * endThick);
-            ctx.lineTo(nextX + p2x * endThick, nextY + p2y * endThick);
-            ctx.lineTo(seg.x + p2x * baseThick, seg.y + p2y * baseThick);
-            ctx.closePath();
             
-            ctx.fillStyle = 'rgba(150, 160, 170, 0.9)'; 
-            ctx.fill();
-            ctx.strokeStyle = '#000';
-            ctx.lineWidth = 1;
-            ctx.stroke();
-
-            ctx.beginPath();
-            ctx.arc(seg.x, seg.y, baseThick + 2, 0, Math.PI * 2);
-            ctx.fillStyle = '#1a1f24';
-            ctx.fill();
-            ctx.lineWidth = 2;
-            ctx.strokeStyle = '#00f3ff'; 
-            ctx.stroke();
-
-            if (i === numSegments - 1) {
-                ctx.save();
-                ctx.translate(nextX, nextY);
-                ctx.rotate(seg.angle);
-                
-                ctx.fillStyle = '#2c3e50';
-                ctx.fillRect(0, -8, 12, 16);
-                
-                ctx.beginPath();
-                ctx.moveTo(12, -4);
-                ctx.lineTo(24, -1);
-                ctx.lineTo(24, 1);
-                ctx.lineTo(12, 4);
-                ctx.fillStyle = '#e0e6ed';
-                ctx.fill();
-                ctx.restore();
-
-                // Determine if we should spark/glow
-                const isWorking = (isIdle && idleState === 'WELDING') || isMouseDown;
-
-                if (isWorking) {
-                    // Arc Glow
-                    ctx.beginPath();
-                    ctx.arc(nextX, nextY, 6 + Math.random()*6, 0, Math.PI * 2);
-                    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-                    ctx.shadowBlur = 20;
-                    ctx.shadowColor = '#00f3ff';
-                    ctx.fill();
-                    ctx.shadowBlur = 0;
-
-                    // Emit Sparks
-                    if (Math.random() > 0.4) { 
-                        for (let i = 0; i < 2; i++) {
-                            const angle = Math.PI/2 + (Math.random() - 0.5) * 2.0; 
-                            const speed = 2 + Math.random() * 6;
-                            sparks.push({
-                                x: actualTipX, 
-                                y: actualTipY,
-                                vx: Math.cos(angle) * speed,
-                                vy: Math.sin(angle) * speed,
-                                life: 1.0,
-                                maxLife: 0.5 + Math.random() * 0.8
-                            });
-                        }
-                    }
-                }
-                
-                // Crosshairs (only show when dragging mouse, hide during idle)
-                if (!isIdle) {
-                    ctx.beginPath();
-                    ctx.moveTo(target.x - 10, target.y);
-                    ctx.lineTo(target.x + 10, target.y);
-                    ctx.moveTo(target.x, target.y - 10);
-                    ctx.lineTo(target.x, target.y + 10);
-                    ctx.strokeStyle = 'rgba(0, 243, 255, 0.4)';
-                    ctx.lineWidth = 1;
-                    ctx.stroke();
-                }
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+            lastMouse.x = e.clientX;
+            lastMouse.y = e.clientY;
+            
+            if(cursorXEl && cursorYEl) {
+                cursorXEl.textContent = String(e.clientX).padStart(4, '0');
+                cursorYEl.textContent = String(e.clientY).padStart(4, '0');
             }
-        }
+        });
 
-        // --- DRAW SPARKS ---
-        for (let i = sparks.length - 1; i >= 0; i--) {
-            let s = sparks[i];
-            let px = s.x;
-            let py = s.y;
-
-            s.x += s.vx;
-            s.y += s.vy;
-            s.vy += 0.3; 
-            s.vx *= 0.94; 
-            s.vy *= 0.96; 
-            s.life -= 0.02;
-
-            let color = '';
-            let ratio = s.life / s.maxLife;
-            if (ratio > 0.7) color = `rgba(255, 255, 255, ${ratio})`;
-            else if (ratio > 0.3) color = `rgba(0, 243, 255, ${ratio})`;
-            else color = `rgba(0, 100, 255, ${ratio})`;
-
-            ctx.beginPath();
-            ctx.moveTo(px, py);
-            ctx.lineTo(s.x, s.y);
-            ctx.strokeStyle = color;
-            ctx.lineWidth = Math.max(0.5, ratio * 2.5); 
-            ctx.lineCap = 'round';
-            ctx.stroke();
-
-            if (s.y > armBase.y) {
-                s.y = armBase.y;
-                s.vy *= -0.3;
-                s.vx *= 0.7;
+        window.addEventListener('mousedown', () => {
+            isMouseDown = true;
+            isIdle = false; 
+            idleTimer = Date.now(); 
+            if (idleState === 'WELDING') {
+                idleState = 'MOVING';
+                pickNewIdleTarget();
             }
+        });
 
-            if(s.life <= 0) sparks.splice(i, 1);
-        }
-
-        requestAnimationFrame(animateArm);
-    }
-
-    initCanvas();
-    animateArm();
-    
-    let resizeTimer;
-    window.addEventListener('resize', () => {
-        clearTimeout(resizeTimer);
-        resizeTimer = setTimeout(initCanvas, 200);
-    });
-
-    /* =========================================
-       4. MOBILE GYROSCOPE
-       ========================================= */
-    const gyroButton = document.getElementById('gyro-button');
-    let isGyroEnabled = false;
-
-    function handleOrientation(event) {
-        let x = event.gamma; 
-        let y = event.beta;  
-
-        x += 90; 
-        y += 90; 
-
-        mouse.x = (width * x) / 180;
-        mouse.y = (height * y) / 180;
-    }
-
-    if (gyroButton) {
-        gyroButton.addEventListener('click', () => {
-            if (isGyroEnabled) {
-                window.removeEventListener('deviceorientation', handleOrientation);
-                isGyroEnabled = false;
-                gyroButton.textContent = 'ENABLE_GYRO';
-                gyroButton.classList.remove('primary');
-            } else {
-                if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-                    DeviceOrientationEvent.requestPermission()
-                        .then(permissionState => {
-                            if (permissionState === 'granted') {
-                                window.addEventListener('deviceorientation', handleOrientation);
-                                isGyroEnabled = true;
-                                gyroButton.textContent = 'DISABLE_GYRO';
-                                gyroButton.classList.add('primary');
-                            }
-                        })
-                        .catch(console.error);
-                } else {
-                    window.addEventListener('deviceorientation', handleOrientation);
-                    isGyroEnabled = true;
-                    gyroButton.textContent = 'DISABLE_GYRO';
-                    gyroButton.classList.add('primary');
-                }
-            }
+        window.addEventListener('mouseup', () => {
+            isMouseDown = false;
         });
     }
 
