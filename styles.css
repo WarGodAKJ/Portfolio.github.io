@@ -894,3 +894,62 @@ main { max-width: 1200px; margin: 0 auto; padding: 0 2rem; }
   .static-name { font-size: 2.5rem; }
   .action-btn { padding: 0.6rem 1rem; font-size: 0.9rem; }
 }
+
+/* =========================================
+   PRINT / PDF EXPORT STYLES
+   ========================================= */
+@media print {
+  /* 1. Force the browser to render your dark theme and backgrounds */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* 2. Hide UI elements that don't make sense in a PDF */
+  #main-navbar,
+  .hud-layer,
+  #robotic-arm-bg,
+  .hero-actions,
+  #modal-bg {
+    display: none !important;
+  }
+
+  /* 3. Reset body layout for continuous printing */
+  body, main {
+    overflow: visible !important;
+    height: auto !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background-color: var(--bg-base) !important;
+  }
+
+  /* 4. Ensure sections don't have massive empty gaps */
+  .section {
+    padding: 2rem 0 !important;
+    page-break-inside: avoid;
+  }
+
+  .split-hero {
+    min-height: auto !important;
+    padding-top: 2rem !important;
+  }
+
+  /* 5. Prevent cards from being split in half across two pages */
+  .project-card, 
+  .exp-card, 
+  .tech-category, 
+  .about-card {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin-bottom: 20px !important;
+  }
+
+  /* 6. EXPAND ALL HIDDEN CONTENT (Crucial for your experience timeline) */
+  .exp-body {
+    max-height: none !important;
+    opacity: 1 !important;
+    padding: 1.5rem !important;
+    overflow: visible !important;
+  }
+}
